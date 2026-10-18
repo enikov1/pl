@@ -213,6 +213,29 @@ async function handleFullParse({ sourceType, sourceUrl, adminUrl, currentTabId, 
 	}
 }
 
+const BULK_WORKER_TAB_STORAGE_KEY = 'bulkWorkerTabId';
+const SHARES_WORKER_TAB_STORAGE_KEY = 'sharesWorkerTabId';
+
+async function restoreWorkerTabId(kind) {
+	const key = kind === 'shares' ? SHARES_WORKER_TAB_STORAGE_KEY : BULK_WORKER_TAB_STORAGE_KEY;
+	const stored = await chrome.storage.local.get(key).catch(() => ({}));
+	const id = Number(stored[key]);
+	if (!Number.isInteger(id) || id <= 0) return null;
+	try {
+		await chrome.tabs.get(id);
+		return id;
+	} catch {
+		await chrome.storage.local.remove(key).catch(() => {});
+		return null;
+	}
+}
+
+async function rememberWorkerTabId(kind, id) {
+	const key = kind === 'shares' ? SHARES_WORKER_TAB_STORAGE_KEY : BULK_WORKER_TAB_STORAGE_KEY;
+	if (id) await chrome.storage.local.set({ [key]: id });
+	else await chrome.storage.local.remove(key);
+}
+
 let bulkWorkerTabId = null;
 let bulkProcessing = false;
 let bulkStopRequested = false;
@@ -701,7 +724,9 @@ async function parseUrlInWorkerTab(url, sourceId) {
 		}
 
 		try {
+			bulkWorkerTabId = bulkWorkerTabId || (await restoreWorkerTabId('bulk'));
 			bulkWorkerTabId = await ensureWorkerTab(bulkWorkerTabId, url, { active: false });
+			await rememberWorkerTabId('bulk', bulkWorkerTabId);
 			await ensureWorkerPageReady(bulkWorkerTabId, 'bulk', url);
 		} catch (error) {
 			if (attempt >= BULK_BLOCKED_RETRY_ATTEMPTS) {
@@ -1210,6 +1235,8 @@ async function resumeBulkJobIfNeeded() {
 	const job = await getBulkJob();
 	if (job.status === 'running' && !bulkProcessing) {
 		runBulkQueueSafe();
+	} else if (job.status !== 'running' && !bulkProcessing) {
+		await closeBulkWorkerTab();
 	}
 }
 
@@ -1340,7 +1367,9 @@ async function parseSharesUrlInWorkerTab(url) {
 		}
 
 		try {
+			sharesWorkerTabId = sharesWorkerTabId || (await restoreWorkerTabId('shares'));
 			sharesWorkerTabId = await ensureWorkerTab(sharesWorkerTabId, url, { active: false });
+			await rememberWorkerTabId('shares', sharesWorkerTabId);
 			await ensureWorkerPageReady(sharesWorkerTabId, 'shares', url);
 			return await runSocialSharesParserOnTab(sharesWorkerTabId);
 		} catch (error) {
@@ -1537,6 +1566,8 @@ async function resumeSharesJobIfNeeded() {
 	const job = await getSharesJob();
 	if (job.status === 'running' && !sharesProcessing) {
 		runSharesQueueSafe();
+	} else if (job.status !== 'running' && !sharesProcessing) {
+		await closeSharesWorkerTab();
 	}
 }
 
