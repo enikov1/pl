@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Массовое обновление ссылок</title>
+	<style>
+		.hidden { display: none; }
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			padding: 20px;
+			background: #f0f2f5;
+			color: #333;
+		}
+		.container {
+			max-width: 960px;
+			margin: 0 auto;
+		}
+		h1 {
+			margin: 0 0 8px;
+			font-size: 22px;
+		}
+		.subtitle {
+			color: #666;
+			font-size: 13px;
+			margin-bottom: 20px;
+		}
+		.card {
+			background: #fff;
+			border: 1px solid #ddd;
+			border-radius: 8px;
+			padding: 16px;
+			margin-bottom: 16px;
+		}
+		label {
+			display: block;
+			font-size: 13px;
+			font-weight: bold;
+			margin-bottom: 6px;
+			color: #444;
+		}
+		textarea {
+			width: 100%;
+			min-height: 220px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 6px;
+			font-family: Consolas, monospace;
+			font-size: 12px;
+			resize: vertical;
+		}
+		.row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 16px;
+			align-items: flex-end;
+			margin-top: 12px;
+		}
+		.field { flex: 1; min-width: 180px; }
+		select, input[type="number"] {
+			width: 100%;
+			padding: 8px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			font-size: 13px;
+		}
+		.checkbox-field {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 13px;
+			font-weight: normal;
+			margin-top: 24px;
+		}
+		.checkbox-field input { width: auto; }
+		.actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin-top: 16px;
+		}
+		button {
+			padding: 10px 18px;
+			border: none;
+			border-radius: 6px;
+			font-size: 13px;
+			font-weight: bold;
+			cursor: pointer;
+		}
+		.btn-start { background: #1976d2; color: #fff; }
+		.btn-start:hover { background: #1565c0; }
+		.btn-start:disabled { background: #90caf9; cursor: not-allowed; }
+		.btn-stop { background: #e53935; color: #fff; }
+		.btn-stop:hover { background: #c62828; }
+		.btn-stop:disabled { background: #ef9a9a; cursor: not-allowed; }
+		.btn-clear { background: #eee; color: #333; }
+		.progress-wrap {
+			background: #e9ecef;
+			border-radius: 6px;
+			height: 24px;
+			overflow: hidden;
+			margin: 12px 0;
+		}
+		.progress-bar {
+			height: 100%;
+			background: linear-gradient(90deg, #1976d2, #42a5f5);
+			width: 0%;
+			transition: width 0.3s;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #fff;
+			font-size: 11px;
+			font-weight: bold;
+		}
+		.stats {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+			gap: 10px;
+			margin-top: 8px;
+		}
+		.stat {
+			background: #f8f9fa;
+			border-radius: 6px;
+			padding: 10px;
+			text-align: center;
+		}
+		.stat-value {
+			font-size: 20px;
+			font-weight: bold;
+			color: #1976d2;
+		}
+		.stat-label {
+			font-size: 11px;
+			color: #666;
+			margin-top: 4px;
+		}
+		.current {
+			font-size: 12px;
+			color: #555;
+			margin-top: 8px;
+			word-break: break-all;
+		}
+		.status-badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 12px;
+			font-size: 12px;
+			font-weight: bold;
+		}
+		.status-idle { background: #e9ecef; color: #495057; }
+		.status-running { background: #d1ecf1; color: #0c5460; }
+		.status-completed { background: #d4edda; color: #155724; }
+		.status-stopped { background: #fff3cd; color: #856404; }
+		.errors {
+			max-height: 240px;
+			overflow-y: auto;
+			font-family: Consolas, monospace;
+			font-size: 11px;
+			background: #fafafa;
+			border: 1px solid #eee;
+			border-radius: 6px;
+			padding: 8px;
+		}
+		.error-item {
+			padding: 6px 0;
+			border-bottom: 1px solid #eee;
+			word-break: break-all;
+		}
+		.error-item:last-child { border-bottom: none; }
+		.hint {
+			font-size: 12px;
+			color: #777;
+			margin-top: 6px;
+		}
+		.api-spoiler {
+			margin-top: 12px;
+			border: 1px solid #e0e0e0;
+			border-radius: 6px;
+			background: #fafafa;
+		}
+		.api-spoiler summary {
+			cursor: pointer;
+			padding: 10px 12px;
+			font-size: 13px;
+			font-weight: bold;
+			color: #444;
+			user-select: none;
+		}
+		.api-spoiler[open] summary {
+			border-bottom: 1px solid #e0e0e0;
+		}
+		.api-spoiler-body {
+			padding: 10px 12px 12px;
+		}
+		.api-spoiler pre {
+			margin: 0;
+			padding: 10px;
+			background: #fff;
+			border: 1px solid #eee;
+			border-radius: 4px;
+			font-family: Consolas, monospace;
+			font-size: 11px;
+			white-space: pre-wrap;
+			word-break: break-all;
+			max-height: 280px;
+			overflow: auto;
+		}
+		.api-meta {
+			font-size: 12px;
+			color: #666;
+			margin-bottom: 8px;
+		}
+		.error-spoiler {
+			margin-top: 6px;
+		}
+		.error-spoiler summary {
+			cursor: pointer;
+			font-size: 11px;
+			color: #1976d2;
+		}
+		.log-list {
+			max-height: 420px;
+			overflow-y: auto;
+			font-size: 12px;
+		}
+		.log-item {
+			border: 1px solid #eee;
+			border-radius: 6px;
+			padding: 10px;
+			margin-bottom: 8px;
+			background: #fafafa;
+		}
+		.log-item.ok { border-left: 4px solid #43a047; }
+		.log-item.fail { border-left: 4px solid #e53935; }
+		.log-head {
+			display: flex;
+			justify-content: space-between;
+			gap: 8px;
+			margin-bottom: 6px;
+		}
+		.log-title { font-weight: bold; }
+		.log-meta { color: #666; font-size: 11px; }
+		.log-message { margin: 6px 0; color: #333; }
+		.log-link a { color: #1976d2; word-break: break-all; }
+		.log-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 8px;
+		}
+		.log-header label { margin-bottom: 0; }
+		.log-actions {
+			display: flex;
+			gap: 8px;
+			flex-wrap: wrap;
+		}
+		.log-actions .btn-clear {
+			padding: 6px 12px;
+			font-size: 12px;
+		}
+		.not-found-list {
+			width: 100%;
+			min-height: 120px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 6px;
+			font-family: Consolas, monospace;
+			font-size: 12px;
+			resize: vertical;
+			box-sizing: border-box;
+		}
+		.captcha-hint {
+			margin-top: 8px;
+			padding: 8px 10px;
+			border-radius: 6px;
+			background: #fff3cd;
+			color: #856404;
+			font-size: 12px;
+			display: none;
+		}
+		.captcha-hint.visible { display: block; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Массовое обновление ссылок</h1>
+		<p class="subtitle">
+			Парсинг страниц russian-seriali.net и отправка на russerialov.net
+			(<code>mod=updatelink</code>)
+		</p>
+
+		<div class="card">
+			<label for="urlsInput">Список ссылок (по одной на строку)</label>
+			<textarea id="urlsInput" placeholder="https://russian-seriali.net/...
+https://russian-seriali.net/sitemap.xml
+или вставьте XML sitemap целиком"></textarea>
+			<p class="hint" id="urlCountHint">0 ссылок</p>
+			<p class="hint">Поддерживаются прямые ссылки, URL sitemap.xml и вставка XML-карты сайта</p>
+
+			<div class="row">
+				<div class="field">
+					<label for="sourceSelect">Источник парсинга</label>
+					<select id="sourceSelect">
+						<option value="russian-seriali">russian-seriali.net</option>
+						<option value="rosserial">rosserial.mobi / rosserial.be</option>
+						<option value="auto">Авто (по URL)</option>
+					</select>
+				</div>
+				<div class="field">
+					<label for="delayInput">Пауза между ссылками (мс)</label>
+					<input type="number" id="delayInput" value="300" min="0" step="100">
+				</div>
+				<label class="checkbox-field">
+					<input type="checkbox" id="updatePlaylistCheck">
+					Обновлять плейлист (playlist)
+				</label>
+			</div>
+
+			<div class="actions">
+				<button id="startBtn" class="btn-start">Запустить</button>
+				<button id="stopBtn" class="btn-stop" disabled>Остановить</button>
+				<button id="clearBtn" class="btn-clear">Сбросить прогресс</button>
+			</div>
+		</div>
+
+		<div class="card">
+			<div>
+				Статус: <span id="statusBadge" class="status-badge status-idle">ожидание</span>
+			</div>
+			<div class="progress-wrap">
+				<div id="progressBar" class="progress-bar">0%</div>
+			</div>
+			<div class="stats">
+				<div class="stat">
+					<div class="stat-value" id="statTotal">0</div>
+					<div class="stat-label">Всего</div>
+				</div>
+				<div class="stat">
+					<div class="stat-value" id="statDone">0</div>
+					<div class="stat-label">Обработано</div>
+				</div>
+				<div class="stat">
+					<div class="stat-value" id="statSuccess">0</div>
+					<div class="stat-label">Успешно</div>
+				</div>
+				<div class="stat">
+					<div class="stat-value" id="statFail">0</div>
+					<div class="stat-label">Ошибки</div>
+				</div>
+			</div>
+			<div class="current" id="currentInfo"></div>
+			<div id="captchaHint" class="captcha-hint">
+				Обнаружена проверка «Я не робот». Вкладка открыта — нажмите кнопку или дождитесь автоклика.
+			</div>
+			<details id="lastRequestDetails" class="api-spoiler hidden">
+				<summary>Последний запрос к API</summary>
+				<div class="api-spoiler-body">
+					<div class="api-meta" id="lastApiMeta"></div>
+					<label>URL запроса</label>
+					<pre id="lastApiRequest"></pre>
+					<label style="margin-top:10px;display:block;">Ответ сервера</label>
+					<pre id="lastApiResponse"></pre>
+				</div>
+			</details>
+		</div>
+
+		<div class="card">
+			<div class="log-header">
+				<label>Не обработанные ссылки <span id="notFoundCount" class="log-meta">(0)</span></label>
+				<div class="log-actions">
+					<button type="button" id="copyNotFoundBtn" class="btn-clear">Скопировать</button>
+					<button type="button" id="addNotFoundBtn" class="btn-clear">В список</button>
+					<button type="button" id="exportNotFoundBtn" class="btn-clear">Экспорт</button>
+				</div>
+			</div>
+			<textarea id="notFoundUrls" class="not-found-list" readonly placeholder="Ссылки с ошибкой парсинга или капчи появятся здесь"></textarea>
+		</div>
+
+		<div class="card">
+			<div class="log-header">
+				<label>Лог обновлений</label>
+				<div class="log-actions">
+					<button type="button" id="exportLogsJsonBtn" class="btn-clear">Экспорт JSON</button>
+					<button type="button" id="exportLogsTxtBtn" class="btn-clear">Экспорт TXT</button>
+				</div>
+			</div>
+			<div id="logsList" class="log-list">Пока нет записей</div>
+		</div>
+
+		<div class="card">
+			<label>Последние ошибки</label>
+			<div id="errorsList" class="errors">Нет ошибок</div>
+		</div>
+	</div>
+
+	<script src="lib/parsers/playlist.js"></script>
+	<script src="lib/bulk-update.js"></script>
+	<script src="bulk.js"></script>
+</body>
+</html>

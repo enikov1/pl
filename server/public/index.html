@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Каталог сайтов — Video Data Extractor</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<div class="app">
+		<header class="topbar">
+			<div class="brand">
+				<span class="brand-mark" aria-hidden="true"></span>
+				<div>
+					<div class="brand-name">Каталог сайтов</div>
+					<div class="brand-sub">Video Data Extractor · локальная база ссылок</div>
+				</div>
+			</div>
+			<div class="topbar-meta">
+				<div id="crawlLiveChip" class="status-chip crawl-live-chip hidden" role="status">Сейчас идёт обход</div>
+				<div id="ipStatus" class="status-chip ip-chip" title="Ваш IP">IP: …</div>
+				<div id="serverStatus" class="status-chip">Проверка сервера…</div>
+			</div>
+		</header>
+
+		<div class="shell">
+			<aside class="sidebar">
+				<nav class="side-nav">
+					<button type="button" class="nav-item active" data-view="sites" id="navSites">
+						<span>Сайты-источники</span>
+						<span class="nav-count" id="sitesNavCount">0</span>
+					</button>
+					<button type="button" class="nav-item" data-view="unprocessed" id="navUnprocessed">
+						<span>Необработанные</span>
+						<span class="nav-count warn" id="unprocessedCount">0</span>
+					</button>
+				</nav>
+
+				<div class="side-section" id="sitesSidePanel">
+					<div class="side-section-head">
+						<span>Ваши сайты</span>
+						<button type="button" class="btn-text" id="toggleCreateBtn">+ Добавить сайт</button>
+					</div>
+					<p class="side-hint">Сайт — это источник (например russian-seriali), к которому вы привязываете страницы для массового обновления на russerialov.</p>
+					<div id="sitesList" class="sites-list"></div>
+
+					<div id="createPanel" class="create-panel hidden">
+						<div class="panel-title">Новый сайт-источник</div>
+						<label class="field">
+							<span>Название</span>
+							<span class="field-hint">Как будет отображаться в списке (любое удобное имя).</span>
+							<input type="text" id="newSiteName" placeholder="Например: Russian Seriali">
+						</label>
+						<label class="field">
+							<span>Адрес сайта</span>
+							<span class="field-hint">Главная страница источника — для справки, на парсинг не влияет.</span>
+							<input type="url" id="newSiteBaseUrl" placeholder="https://russian-seriali.net">
+						</label>
+						<label class="field">
+							<span>Какой парсер использовать</span>
+							<span class="field-hint">Выберите сайт, с которого берутся страницы сериалов — от этого зависит разбор данных.</span>
+							<select id="newSiteSource">
+								<option value="russian-seriali">russian-seriali.net</option>
+								<option value="rosserial">rosserial.mobi / rosserial.be</option>
+							</select>
+						</label>
+						<p class="field-hint check-hint">Расписание, порядок обхода и другие параметры — на вкладке «Настройки» после создания сайта.</p>
+						<button type="button" id="createSiteBtn" class="btn btn-accent btn-block">Создать сайт</button>
+					</div>
+				</div>
+			</aside>
+
+			<main class="main">
+				<section id="viewEmpty" class="view">
+					<div class="empty-state">
+						<p class="empty-kicker">С чего начать</p>
+						<h1>Выберите сайт слева или создайте новый</h1>
+						<p>Добавьте страницы сериалов/фильмов, запускайте обход вручную или по расписанию. Неудачные ссылки попадут в «Необработанные» — их можно открыть через полный парсинг в админку.</p>
+					</div>
+				</section>
+
+				<section id="siteDetail" class="view hidden">
+					<div class="page-head">
+						<div>
+							<button type="button" id="closeDetailBtn" class="btn-text back-link">← К списку сайтов</button>
+							<h1 id="detailTitle">Сайт</h1>
+							<div class="page-desc detail-meta" id="detailMeta"></div>
+						</div>
+						<div class="page-actions">
+							<button type="button" id="crawlNowBtn" class="btn btn-accent" title="Поставить все ссылки сайта в очередь на массовое обновление">Запустить обход сейчас</button>
+							<button type="button" id="stopCrawlBtn" class="btn btn-danger hidden" title="Остановить текущий обход">Остановить обход</button>
+							<button type="button" id="deleteSiteBtn" class="btn btn-danger" title="Удалит сайт и все его ссылки">Удалить сайт</button>
+						</div>
+					</div>
+
+					<div id="crawlStatusBanner" class="crawl-banner hidden" role="status">
+						<div class="crawl-banner-main">
+							<span class="crawl-pulse" aria-hidden="true"></span>
+							<div>
+								<div class="crawl-banner-title" id="crawlStatusTitle">Обход выполняется</div>
+								<div class="crawl-banner-meta" id="crawlStatusMeta"></div>
+							</div>
+						</div>
+						<div class="crawl-banner-progress">
+							<div class="crawl-banner-bar"><span id="crawlStatusBar"></span></div>
+							<div class="crawl-banner-counts" id="crawlStatusCounts"></div>
+						</div>
+					</div>
+
+					<nav class="site-tabs" id="siteDetailTabs" aria-label="Разделы сайта">
+						<button type="button" class="site-tab active" data-site-tab="overview">Обзор</button>
+						<button type="button" class="site-tab" data-site-tab="history">История обходов</button>
+						<button type="button" class="site-tab" data-site-tab="links">Ссылки</button>
+						<button type="button" class="site-tab" data-site-tab="settings">Настройки</button>
+					</nav>
+
+					<div id="siteTabOverview" class="site-tab-panel" data-site-tab-panel="overview">
+						<div id="siteStats" class="metrics"></div>
+						<p class="metrics-legend" id="metricsLegend"></p>
+					</div>
+
+					<div id="siteTabHistory" class="site-tab-panel hidden" data-site-tab-panel="history">
+						<div class="panel">
+							<div class="panel-head">
+								<h2>История обходов</h2>
+							</div>
+							<p class="panel-intro">Статистика по каждому запуску: сколько ссылок обработано, сколько осталось, успехи и ошибки.</p>
+							<div class="table-wrap">
+								<table id="crawlRunsTable">
+									<thead>
+										<tr>
+											<th>Когда</th>
+											<th>Статус</th>
+											<th>Запуск</th>
+											<th>Всего</th>
+											<th>Обработано</th>
+											<th>Успешно</th>
+											<th>Ошибки</th>
+											<th>Не обработано</th>
+										</tr>
+									</thead>
+									<tbody id="crawlRunsBody"></tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+
+					<div id="siteTabSettings" class="site-tab-panel hidden" data-site-tab-panel="settings">
+						<div class="panel">
+							<div class="panel-head">
+								<h2>Настройки обхода</h2>
+							</div>
+							<p class="panel-intro">Эти параметры действуют для всех ссылок выбранного сайта. После изменений нажмите «Сохранить настройки».</p>
+							<div class="settings-grid">
+								<div class="setting-block">
+									<label class="check">
+										<input type="checkbox" id="siteScheduleEnabled">
+										<span>Автообход по расписанию</span>
+									</label>
+									<p class="field-hint">Сервер сам ставит сайт в очередь, когда подходит время следующего обхода. Нужны открытый Chrome и запущенный сервер.</p>
+								</div>
+								<div class="setting-block">
+									<label class="field field-inline">
+										<span>Интервал между обходами (часов)</span>
+										<input type="number" id="siteInterval" min="1" value="24">
+									</label>
+									<p class="field-hint">Например 6 — примерно каждые 6 часов; 24 — раз в сутки после прошлого завершения.</p>
+								</div>
+								<div class="setting-block">
+									<label class="check">
+										<input type="checkbox" id="siteUpdatePlaylist">
+										<span>Обновлять плейлист при обходе</span>
+									</label>
+									<p class="field-hint">Включить, если нужно обновлять ссылки на серии/плееры. Выключить — только проверить/обновить карточку по названию и году.</p>
+								</div>
+								<div class="setting-block">
+									<label class="field field-inline">
+										<span>Порядок обхода по ID в ссылке</span>
+										<select id="siteCrawlOrder">
+											<option value="desc">От большего к меньшему (3176 → 1546)</option>
+											<option value="asc">От меньшего к большему (7 → 1546)</option>
+										</select>
+									</label>
+									<p class="field-hint">Число в адресе страницы, например <code>/1546-название.html</code>. Новые ссылки вставляют в очередь по этому правилу, а не по дате добавления.</p>
+								</div>
+							</div>
+							<div class="inline-actions">
+								<button type="button" id="saveSiteBtn" class="btn btn-ghost">Сохранить настройки</button>
+							</div>
+						</div>
+					</div>
+
+					<div id="siteTabLinks" class="site-tab-panel hidden" data-site-tab-panel="links">
+						<div class="panel">
+							<div class="panel-head">
+								<h2>Добавить ссылки для парсинга</h2>
+							</div>
+							<p class="panel-intro">Сюда вставляйте адреса страниц сериалов или фильмов на сайте-источнике. При обходе расширение откроет каждую и отправит данные в russerialov.</p>
+							<div class="add-one">
+								<input type="url" id="singleUrl" placeholder="https://…/1546-stranica-seriala.html" class="grow">
+								<button type="button" id="addOneBtn" class="btn btn-accent">Добавить одну</button>
+							</div>
+							<label class="field">
+								<span>Или сразу списком — по одной ссылке на строку</span>
+								<textarea id="bulkUrls" rows="5" placeholder="https://сайт/1546-serial-1.html&#10;https://сайт/1547-serial-2.html"></textarea>
+							</label>
+							<div class="inline-actions">
+								<button type="button" id="addBulkBtn" class="btn btn-accent">Добавить списком</button>
+								<button type="button" id="clearLinksBtn" class="btn btn-ghost danger-text">Очистить все ссылки</button>
+							</div>
+						</div>
+
+						<div class="panel">
+							<div class="panel-head">
+								<h2>Список ссылок <span id="linksCount" class="muted"></span></h2>
+							</div>
+							<p class="panel-intro">Статус последнего обхода по каждой странице. Порядок обхода настраивается на вкладке «Настройки». На странице показывается по 50 ссылок.</p>
+							<div class="links-toolbar">
+								<label class="field links-search-field">
+									<span>Поиск по ссылке или названию</span>
+									<input type="search" id="linksSearch" placeholder="Например: любовь или /2483-" autocomplete="off">
+								</label>
+								<button type="button" id="linksSearchClear" class="btn btn-ghost" hidden>Сбросить</button>
+							</div>
+							<div class="table-wrap">
+								<table id="linksTable">
+									<thead>
+										<tr>
+											<th><button type="button" class="th-sort" data-sort="url_path_id">ID <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="url">Ссылка <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="shares_total">Шаринг <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="status">Статус <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="last_crawl_at">Последний обход <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="last_title">Название <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="last_error">Ошибка <span class="sort-ind"></span></button></th>
+											<th><button type="button" class="th-sort" data-sort="needs_admin">Админка <span class="sort-ind"></span></button></th>
+											<th></th>
+										</tr>
+									</thead>
+									<tbody id="linksTableBody"></tbody>
+								</table>
+							</div>
+							<div id="linksPagination" class="pagination" hidden>
+								<button type="button" class="btn btn-ghost" id="linksPrevBtn">← Назад</button>
+								<span id="linksPageInfo" class="pagination-info"></span>
+								<button type="button" class="btn btn-ghost" id="linksNextBtn">Вперёд →</button>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section id="viewUnprocessed" class="view hidden">
+					<div class="page-head">
+						<div>
+							<p class="empty-kicker">Очередь на ручную обработку</p>
+							<h1>Необработанные ссылки</h1>
+							<p class="page-desc">Сюда попадают страницы, которые массовый обход не смог обновить. Для каждой ссылки можно: скопировать, сразу запустить парсинг в админку, отметить готовой или удалить.</p>
+						</div>
+						<div class="page-actions">
+							<button type="button" id="refreshUnprocessedBtn" class="btn btn-ghost">Обновить список</button>
+							<button type="button" id="copyUnprocessedBtn" class="btn btn-ghost">Скопировать все ссылки</button>
+						</div>
+					</div>
+					<div class="panel">
+						<p class="panel-intro">На странице показывается по 50 ссылок. Сортировка по году и шарингу работает по всему списку.</p>
+						<div class="table-wrap">
+							<table id="unprocessedTable">
+								<thead>
+									<tr>
+										<th>Сайт</th>
+										<th>Ссылка</th>
+										<th><button type="button" class="th-sort" data-unprocessed-sort="url_year">Год <span class="sort-ind"></span></button></th>
+										<th><button type="button" class="th-sort" data-unprocessed-sort="shares_total">Шаринг <span class="sort-ind"></span></button></th>
+										<th>Причина</th>
+										<th>Текст ошибки</th>
+										<th>Действия</th>
+									</tr>
+								</thead>
+								<tbody id="unprocessedBody"></tbody>
+							</table>
+						</div>
+						<div id="unprocessedPagination" class="pagination" hidden>
+							<button type="button" class="btn btn-ghost" id="unprocessedPrevBtn">← Назад</button>
+							<span id="unprocessedPageInfo" class="pagination-info"></span>
+							<button type="button" class="btn btn-ghost" id="unprocessedNextBtn">Вперёд →</button>
+						</div>
+					</div>
+				</section>
+			</main>
+		</div>
+	</div>
+
+	<div id="toast" class="toast hidden"></div>
+	<script src="/app.js"></script>
+</body>
+</html>

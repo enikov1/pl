@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Настройки Video Data Extractor</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			max-width: 720px;
+			margin: 24px auto;
+			padding: 0 16px;
+			color: #333;
+		}
+		h1 { font-size: 20px; }
+		.admin-row {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			margin-bottom: 8px;
+		}
+		.admin-row input[type="text"] { flex: 1; }
+		.admin-row input[type="url"] { flex: 2; }
+		button {
+			padding: 8px 12px;
+			cursor: pointer;
+			border: none;
+			border-radius: 4px;
+			background: #4CAF50;
+			color: #fff;
+		}
+		button.secondary { background: #607d8b; }
+		button.danger { background: #e53935; }
+		#status {
+			margin-top: 12px;
+			padding: 8px;
+			border-radius: 4px;
+			display: none;
+		}
+		#status.success { display: block; background: #d4edda; color: #155724; }
+		#status.error { display: block; background: #f8d7da; color: #721c24; }
+		.hint { color: #666; font-size: 13px; margin-bottom: 16px; }
+	</style>
+</head>
+<body>
+	<h1>Настройки Video Data Extractor</h1>
+	<p class="hint">Добавьте ссылки на страницы добавления новостей в DLE-админке. Отметьте одну как «по умолчанию» — она будет открываться после полного парсинга.</p>
+
+	<div id="adminUrlsList"></div>
+
+	<button type="button" id="addUrlBtn" class="secondary">+ Добавить URL</button>
+	<button type="button" id="saveBtn">Сохранить</button>
+
+	<hr style="margin: 24px 0; border: none; border-top: 1px solid #ddd;">
+
+	<h2 style="font-size: 16px;">Каталог сайтов (локальный сервер)</h2>
+	<p class="hint">SQLite-каталог для ссылок и расписания обхода. Запуск: <code>cd server && npm install && npm start</code></p>
+	<label for="catalogServerUrl" style="display:block;font-size:13px;margin-bottom:4px;">URL сервера</label>
+	<input type="url" id="catalogServerUrl" style="width:100%;padding:8px;margin-bottom:8px;box-sizing:border-box;" placeholder="http://127.0.0.1:3921">
+	<div style="display:flex;gap:8px;flex-wrap:wrap;">
+		<button type="button" id="saveCatalogBtn">Сохранить URL сервера</button>
+		<button type="button" id="openCatalogBtn" class="secondary">Открыть каталог</button>
+	</div>
+
+	<div id="status"></div>
+
+	<script src="options.js"></script>
+</body>
+</html>

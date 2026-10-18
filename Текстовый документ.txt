@@ -1,0 +1,170 @@
+document.getElementById('extractBtn').addEventListener('click', async () => {
+	const statusDiv = document.getElementById('status');
+
+	try {
+		// Получаем активную вкладку
+		const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+		// Выполняем скрипт на странице
+		const results = await chrome.scripting.executeScript({
+			target: { tabId: tab.id },
+			function: extractVideoData,
+		});
+
+		// Получаем результат
+		const jsonData = results[0].result;
+
+		// Копируем в буфер обмена
+		await navigator.clipboard.writeText(jsonData);
+
+		// Показываем успех
+		statusDiv.className = 'status success';
+		statusDiv.textContent = '✓ Данные скопированы в буфер обмена!';
+
+	} catch (error) {
+		statusDiv.className = 'status error';
+		statusDiv.textContent = '✗ Ошибка: ' + error.message;
+		console.error('Error:', error);
+	}
+});
+
+// Функция, которая будет выполняться на странице
+function extractVideoData() {
+	// Ваша функция capitalizeFirstLetter
+	function capitalizeFirstLetter(string) {
+		return string.charAt(0).toUpperCase() + string.slice(1);
+	}
+
+	let json_data = {};
+	let json_series = {};
+	let json_c = [];
+	let json_str;
+
+	// Проверяем наличие jQuery, если нет - используем нативный JS
+	const $ = window.jQuery || function (selector) {
+		return {
+			find: function (subSelector) {
+				return document.querySelectorAll(selector + ' ' + subSelector);
+			},
+			each: function (callback) {
+				const elements = document.querySelectorAll(selector);
+				elements.forEach((el, i) => callback(i, el));
+				return this;
+			},
+			text: function () {
+				const el = document.querySelector(selector);
+				return el ? el.textContent : '';
+			},
+			attr: function (attr) {
+				const el = document.querySelector(selector);
+				return el ? el.getAttribute(attr) : null;
+			},
+			length: document.querySelectorAll(selector).length
+		};
+	};
+
+	if ($('.playlists-lists li').length > 0) {
+		$('.playlists-lists').find('li').each(function (i, e) {
+			let json_v = [];
+			let data_title = capitalizeFirstLetter($(this).text());
+			let data_id = $(this).attr('data-id');
+
+			if (data_title) {
+				$(`.playlists-videos li[data-id="${data_id}"]`).each(function (i, e) {
+					let data_title_sub = capitalizeFirstLetter($(this).text());
+					let data_file_sub = $(this).attr('data-file');
+					let data_anons = $(this).attr('data-notice');
+					let data_anons_active = $(this).attr('data-announce');
+
+					if (data_title_sub && data_file_sub) {
+						if (data_anons && data_anons_active == 0) {
+							json_series = {
+								"title": data_title_sub,
+								"file": data_file_sub,
+								"text": data_anons
+							};
+						} else if (data_anons_active == 1) {
+							json_series = {
+								"title": data_title_sub,
+								"file": data_file_sub,
+								"text_anons": data_anons
+							};
+						} else {
+							json_series = {
+								"title": data_title_sub,
+								"file": data_file_sub
+							};
+						}
+
+						json_v.push(json_series);
+					}
+				});
+
+				if (json_v.length > 0) {
+					json_c.push({
+						"title": data_title,
+						"folder": json_v
+					});
+				}
+			}
+		});
+
+	} else if ($('.playlists-lists li').length == 0) {
+		$('.playlists-items').find('li').each(function (i, e) {
+			let data_title = capitalizeFirstLetter($(this).text());
+			let data_file = $(this).attr('data-file');
+			let data_anons = $(this).attr('data-notice');
+			let data_anons_active = $(this).attr('data-announce');
+
+			if (data_title) {
+				if (data_anons && data_anons_active == 0) {
+					json_data = {
+						"title": data_title,
+						"file": data_file,
+						"text": data_anons
+					};
+				} else if (data_anons_active == 1) {
+					json_data = {
+						"title": data_title,
+						"file": data_file,
+						"text_anons": data_anons
+					};
+				} else {
+					json_data = {
+						"title": data_title,
+						"file": data_file
+					};
+				}
+				json_c.push(json_data);
+			}
+		});
+	} else {
+		$('select').find('option').each(function (i, e) {
+			let data_title = capitalizeFirstLetter($(this).text());
+			let data_file = $(this).attr('value');
+			if (data_title) {
+				json_data = {
+					"title": data_title,
+					"file": data_file
+				};
+				json_c.push(json_data);
+			}
+		});
+	}
+
+	json_str = JSON.stringify(json_c);
+	if (json_str == '[]') {
+		const file = $('.fplayer iframe').attr('src');
+
+		json_data = {
+			"title": 'Фильм',
+			"file": file
+		};
+		json_c.push(json_data);
+	}
+
+	console.log(JSON.stringify(json_c));
+
+	// Возвращаем результат
+	return JSON.stringify(json_c, null, 2);
+}

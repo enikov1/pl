@@ -1,0 +1,57 @@
+{
+	"manifest_version": 3,
+	"name": "Video Data Extractor",
+	"version": "2.3",
+	"description": "Парсинг плейлиста и полных данных фильма/сериала с автозаполнением DLE-админки",
+	"permissions": [
+		"activeTab",
+		"scripting",
+		"clipboardWrite",
+		"storage",
+		"tabs",
+		"alarms"
+	],
+	"host_permissions": [
+		"<all_urls>",
+		"http://127.0.0.1:3921/*",
+		"http://localhost:3921/*"
+	],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"options_page": "options.html",
+	"icons": {
+		"16": "icons/icon16.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "Video Data Extractor",
+		"default_icon": {
+			"16": "icons/icon16.png",
+			"48": "icons/icon48.png",
+			"128": "icons/icon128.png"
+		}
+	},
+	"content_scripts": [
+		{
+			"matches": ["*://*/*admi*.*", "*://*/*admin*.*"],
+			"js": [
+				"lib/dom-utils.js",
+				"lib/parsers/playlist.js",
+				"lib/fillers/dle-admin.js",
+				"content.js"
+			],
+			"run_at": "document_idle"
+		},
+		{
+			"matches": [
+				"http://127.0.0.1:3921/*",
+				"http://localhost:3921/*"
+			],
+			"js": ["content-catalog.js"],
+			"run_at": "document_idle"
+		}
+	]
+}
