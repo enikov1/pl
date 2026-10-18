@@ -218,22 +218,22 @@ const SHARES_WORKER_TAB_STORAGE_KEY = 'sharesWorkerTabId';
 
 async function restoreWorkerTabId(kind) {
 	const key = kind === 'shares' ? SHARES_WORKER_TAB_STORAGE_KEY : BULK_WORKER_TAB_STORAGE_KEY;
-	const stored = await chrome.storage.local.get(key).catch(() => ({}));
+	const stored = await chrome.storage.session.get(key).catch(() => ({}));
 	const id = Number(stored[key]);
 	if (!Number.isInteger(id) || id <= 0) return null;
 	try {
 		await chrome.tabs.get(id);
 		return id;
 	} catch {
-		await chrome.storage.local.remove(key).catch(() => {});
+		await chrome.storage.session.remove(key).catch(() => {});
 		return null;
 	}
 }
 
 async function rememberWorkerTabId(kind, id) {
 	const key = kind === 'shares' ? SHARES_WORKER_TAB_STORAGE_KEY : BULK_WORKER_TAB_STORAGE_KEY;
-	if (id) await chrome.storage.local.set({ [key]: id });
-	else await chrome.storage.local.remove(key);
+	if (id) await chrome.storage.session.set({ [key]: id });
+	else await chrome.storage.session.remove(key);
 }
 
 let bulkWorkerTabId = null;
