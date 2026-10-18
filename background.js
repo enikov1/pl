@@ -125,8 +125,14 @@ async function ensureWorkerTab(currentTabId, url, { active = false } = {}) {
 	}
 
 	const tab = await chrome.tabs.create({ url, active });
-	await waitForTabLoad(tab.id, 45000, url);
-	return tab.id;
+	try {
+		await waitForTabLoad(tab.id, 45000, url);
+		return tab.id;
+	} catch (error) {
+		// The caller cannot clean up a tab whose ID was never returned.
+		await chrome.tabs.remove(tab.id).catch(() => {});
+		throw error;
+	}
 }
 
 async function runParserOnTab(tabId, sourceId = 'auto') {
@@ -164,8 +170,14 @@ async function getOrCreateSourceTab({ sourceType, sourceUrl, currentTabId }) {
 	}
 
 	const tab = await chrome.tabs.create({ url: sourceUrl, active: false });
-	await waitForTabLoad(tab.id);
-	return { tabId: tab.id, created: true };
+	try {
+		await waitForTabLoad(tab.id);
+		return { tabId: tab.id, created: true };
+	} catch (error) {
+		// handleFullParse receives the tab ID only after this promise resolves.
+		await chrome.tabs.remove(tab.id).catch(() => {});
+		throw error;
+	}
 }
 
 async function handleFullParse({ sourceType, sourceUrl, adminUrl, currentTabId, sourceId = 'auto' }) {
