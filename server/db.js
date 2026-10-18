@@ -1002,19 +1002,30 @@ function createPendingAction(type, payload) {
 }
 
 function claimPendingAction() {
+	const staleClaimBefore = now() - 5 * 60 * 1000;
 	const row = getDb()
 		.prepare(
-			`SELECT * FROM pending_actions WHERE status = 'pending' ORDER BY id ASC LIMIT 1`
+			`SELECT * FROM pending_actions
+			 WHERE status = 'pending'
+			    OR (status = 'claimed' AND (claimed_at IS NULL OR claimed_at <= ?))
+			 ORDER BY id ASC
+			 LIMIT 1`
 		)
-		.get();
+		.get(staleClaimBefore);
 
 	if (!row) return null;
 
-	getDb()
+	const claimedAt = now();
+	const claimed = getDb()
 		.prepare(
-			`UPDATE pending_actions SET status = 'claimed', claimed_at = ? WHERE id = ? AND status = 'pending'`
+			`UPDATE pending_actions
+			 SET status = 'claimed', claimed_at = ?
+			 WHERE id = ?
+			   AND (status = 'pending'
+			        OR (status = 'claimed' AND (claimed_at IS NULL OR claimed_at <= ?)))`
 		)
-		.run(now(), row.id);
+		.run(claimedAt, row.id, staleClaimBefore);
+	if (claimed.changes === 0) return null;
 
 	let payload = {};
 	try {
